@@ -1,0 +1,10 @@
+Step 1:
+Install mysqlconnector and tkinter librarires on python by using following commands in the command prompt
+
+pip install mysqlconnector
+
+pip insatll tkinter
+
+
+Step 2:
+Open Python files folder and execute 'main.py' python file to execute the 'GYM MANAGEMENT SYSTEM'

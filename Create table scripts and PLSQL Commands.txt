@@ -1,0 +1,140 @@
+create table staff(
+s_id int primary key,
+s_name varchar(50),
+gender varchar(10),
+post varchar(25),
+hire_date date,
+salary int,
+phone_num varchar(12)
+);
+
+
+create table members(
+id int primary key,
+cust_name varchar(50),
+DOB date,
+gender varchar(10),
+phone_num varchar(12),
+email_addr varchar(50),
+status_val enum('Active', 'Inactive') default 'Active'
+);
+
+
+create table membership(
+m_id int primary key,
+b_tkm int,
+start_date date,
+end_date date,
+duration int,
+foreign key (m_id) references members(id) ON DELETE CASCADE
+);
+
+
+create table feedback(
+fid int primary key,
+id int not null,
+f_type varchar(50),
+f_descp varchar(200),
+f_date date
+);
+
+
+
+create table additionalbenefits(
+id int not null,
+p_id int,
+nutritionist_name varchar(50) default null,
+sauna boolean,
+p_start_date date,
+p_end_date date,
+foreign key (id) references membership(m_id) ON DELETE CASCADE,
+foreign key (p_id) references staff(s_id) ON DELETE CASCADE
+);
+
+
+DELIMITER //
+CREATE TRIGGER after_insert_members
+AFTER INSERT ON members
+FOR EACH ROW
+BEGIN
+    IF NEW.status_val = 'Active' THEN
+        INSERT INTO membership (m_id, b_tkm, start_date, end_date, duration)
+        VALUES (NEW.id, 0, NULL, NULL, NULL);
+    END IF;
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE END_IT(IN start_it DATE, IN dur int, IN id int )
+	begin
+		DECLARE end_day date;
+			if dur = 1 then
+				set end_day = date_add(start_it,interval 1 month);
+			elseif dur = 3 then
+				set end_day = date_add(start_it,interval 3 month);
+			elseif dur = 6 then
+				set end_day = date_add(start_it,interval 6 month);
+			elseif dur = 12 then
+				set end_day = date_add(start_it,interval 12 month);
+			end if;
+            update membership
+             set start_date = start_it, end_date = end_day, duration = dur
+             where m_id = id;
+    end//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER bene_tkn
+AFTER INSERT ON  additionalbenefits
+FOR EACH ROW
+BEGIN
+        update membership
+			set b_tkm = 1
+            where m_id = new.id;
+END;
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE find_name(IN p_name varchar(50))
+BEGIN
+    DECLARE tkn INT;
+    SELECT b_tkm INTO tkn
+    FROM membership m
+    JOIN members n ON m.m_id = n.id
+    WHERE n.cust_name = p_name
+    LIMIT 1;
+    IF tkn = 1 THEN
+        SELECT n.id, n.cust_name, m.start_date, m.end_date, m.duration, a.nutritionist_name, a.p_id, a.sauna, a.p_end_date
+        FROM membership m
+        JOIN members n ON m.m_id = n.id
+        LEFT JOIN additionalbenefits a ON n.id = a.id
+        WHERE n.cust_name = p_name;
+    ELSEIF tkn = 0 THEN
+        SELECT n.id, n.cust_name, m.start_date, m.end_date, m.duration
+        FROM membership m
+        JOIN members n ON m.m_id = n.id
+        WHERE n.cust_name = p_name;
+    END IF;
+END;
+//
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_membership
+AFTER UPDATE ON members
+FOR EACH ROW
+BEGIN
+    IF NEW.status_val != OLD.status_val THEN
+        IF NEW.status_val = 'Active' THEN
+            INSERT INTO membership (m_id, b_tkm, start_date, end_date, duration)
+			VALUES (NEW.id, 0, NULL, NULL, NULL);
+        ELSEIF NEW.status_val = 'Inactive' THEN
+            DELETE FROM membership WHERE m_id = NEW.id;
+        END IF;
+    END IF;
+END;
+//
+DELIMITER ;
