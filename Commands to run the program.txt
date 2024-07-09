@@ -7,4 +7,4 @@ pip insatll tkinter
 
 
 Step 2:
-Open Python files folder and execute 'main.py' python file to execute the 'GYM MANAGEMENT SYSTEM'
+Execute 'main.py' python file to execute the 'GYM MANAGEMENT SYSTEM'
